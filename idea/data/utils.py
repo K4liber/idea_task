@@ -1,4 +1,3 @@
-from enum import Enum
 from os import listdir, getcwd
 from os.path import isfile, join
 from typing import List

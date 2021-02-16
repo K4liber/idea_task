@@ -25,7 +25,7 @@ class DatabaseInMemory(DatabaseInterface):
                 for hour, hour_row in f[hours_key].items():
                     try:
                         hour_int = int(hour.removeprefix('hour_'))
-                    except ValueError as va:
+                    except ValueError:
                         logger.error('wrong hour format=%s != hour_{int}' % hour)
 
                     for table_name, values in hour_row.items():
