@@ -6,24 +6,24 @@ class DatabaseInterface(metaclass=abc.ABCMeta):
     @classmethod
     def __subclasshook__(cls, subclass):
         return (hasattr(subclass, 'get_nodes') and
-                callable(subclass.load_data_source) and
+                callable(subclass.get_nodes) and
                 hasattr(subclass, 'get_gens') and
-                callable(subclass.extract_text) and
+                callable(subclass.get_gens) and
                 hasattr(subclass, 'get_branches') and
-                callable(subclass.extract_text) or
+                callable(subclass.get_branches) or
                 NotImplemented)
 
     @abc.abstractmethod
-    def get_nodes(self, hours: Set[int] = {}) -> str:
+    def get_nodes(self, hours: Set[int] = None) -> dict:
         """Get data about nodes for a given hour."""
         pass
 
     @abc.abstractmethod
-    def get_gens(self, hours: Set[int] = {}) -> dict:
+    def get_gens(self, hours: Set[int] = None) -> dict:
         """Get data about nodes for a given hour."""
         pass
 
     @abc.abstractmethod
-    def get_branches(self, hours: Set[int] = {}) -> dict:
+    def get_branches(self, hours: Set[int] = None) -> dict:
         """Get data about nodes for a given hour."""
         pass

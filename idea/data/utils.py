@@ -1,6 +1,14 @@
+from enum import Enum
 from os import listdir, getcwd
 from os.path import isfile, join
 from typing import List
+
+
+TABLE_NAMES = [
+    'nodes',
+    'branches',
+    'gens'
+]
 
 
 def load_files_paths(main_dir: str, ext: str = '') -> List[str]:
