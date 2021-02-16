@@ -1,4 +1,4 @@
-name: Python package
+name: Idea
 
 on: [push]
 
@@ -37,7 +37,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          if [ -f balticlsc/requirements_test.txt ]; then pip install -r balticlsc/requirements_test.txt; fi
-      - name: Test with unittest
+          if [ -f idea/requirements.txt ]; then pip install -r idea/requirements.txt; fi
+      - name: Test data
         run: |
-          python -m unittest balticlsc/test/*.py
+          python -m unittest idea/tests/data/test_*.py
