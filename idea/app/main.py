@@ -25,8 +25,8 @@ def get_scatters(hour_from: int, hour_to: int) -> list:
     nodes_to = hour_to_nodes[hour_to]
     branches_to = hour_to_branches[hour_to]
     # TODO add info about gens to the graph
-    gens_from = hour_to_gens[hour_from]
-    gens_to = hour_to_gens[hour_to]
+    # gens_from = hour_to_gens[hour_from]
+    # gens_to = hour_to_gens[hour_to]
 
     for node_id in nodes_from:
         G.add_node(node_id)
