@@ -55,4 +55,4 @@ def slider_changed(new_values):
     return [new_values[0], new_values[1], network_data.get_state(new_values[0], new_values[1]).get_figure()]
 
 
-app.run_server(host='0.0.0.0', port=8081, debug=False, use_reloader=True)
+app.run_server(host='0.0.0.0', debug=False, use_reloader=True)
