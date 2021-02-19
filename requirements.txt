@@ -3,3 +3,4 @@ h5py==3.1.0
 plotly==4.14.3
 networkx==2.5
 dash==1.19.0
+pandas==1.2.2
