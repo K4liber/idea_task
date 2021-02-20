@@ -1,3 +1,4 @@
+import os
 from os.path import join
 
 import dash
@@ -11,11 +12,11 @@ from ..vis.network import NetworkData
 hd5_files_dir = join(ROOT_DIR, 'data/hd5/files/')
 db = DatabaseInMemory(hd5_files_dir)
 network_data = NetworkData(db)
-
-app = dash.Dash()
+assets_path = join(ROOT_DIR, 'vis/assets/')
+app = dash.Dash(assets_folder=assets_path)
 app.layout = html.Div([
     dcc.Graph(figure=network_data.get_state(6, 12).get_figure(),
-              id='network', style={'width': '90vw', 'height': '90vh', 'margin': '0 auto'}),
+              id='network', style={'width': '90vw', 'height': '95vh', 'margin': '0 auto'}),
     html.Div(
         [
             dcc.Input(id='hour_from', type='number', value=6, min=1, max=24),
@@ -30,7 +31,7 @@ app.layout = html.Div([
             dcc.Input(id='hour_to', type='number', value=12, min=1, max=24)
         ],
         id='range',
-        style={"display": "grid", "grid-template-columns": "5% 90% 5%"}),
+        style={'display': 'grid', 'grid-template-columns': '5% 90% 5%', 'height': '5vh'}),
 ],
     style={'background-color': '#AAF', 'margin': '0px'},
 )

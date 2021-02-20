@@ -1,10 +1,11 @@
-from typing import Set, Dict, Tuple, List
+from typing import Dict, Tuple, List
 
 import networkx as nx
 
 import plotly.graph_objects as go
 
 from .network_elements import Node, Branch, Arrow
+from .style import ANNOTATION_UNDERLINE, NODE_TYPE_TO_SYMBOL
 from .utils import get_arrow_from_branch, size_scale
 from ..data.interface import DatabaseInterface
 
@@ -27,29 +28,39 @@ class NetworkState:
             graph.add_edge(branch.from_node, branch.to_node)
 
         self._nodes_positions = nx.spring_layout(graph, seed=9)
-
+        # Generate the arrows
         for branch in branches:
-            if branch.arrow_size != 0:
-                self._arrows.append(
-                    get_arrow_from_branch(branch.from_node, branch.to_node, branch.arrow_size, self._nodes_positions))
-
-        self._node_type_to_symbol = {
-            1: 0,
-            2: 27,
-            3: 28,
-        }
+            arrow = get_arrow_from_branch(branch.from_node, branch.to_node,
+                                          branch.arrow_size, self._nodes_positions)
+            arrow_annotation = 'Branch from node #%d to #%d <br>' % (branch.from_node, branch.to_node) + \
+                               ANNOTATION_UNDERLINE + \
+                               'abs avg flow = %.2f [MV] <br>' % branch.width + \
+                               'flow diff = %.2f [MV] <br>' % branch.arrow_size
+            arrow.set_annotation(arrow_annotation)
+            self._arrows.append(arrow)
 
     def get_figure(self) -> go.Figure:
         data: List[go.Scatter] = list()
-        branches_scatter, arrows = self._get_branches_scatters_and_arrows()
+        branches_scatter = self._get_branches_scatters()
         data.extend(branches_scatter)
         data.append(self._get_simple_nodes_scatter())
         data.append(self._get_gens_scatter())
+        # Append an arrow marker to show arrow in the legend
+        data.append(go.Scatter(
+            x=[0], y=[0],
+            x0=2,
+            mode='markers',
+            visible='legendonly',
+            text='flow diff representation',
+            name='flow diff',
+            showlegend=True,
+            marker_symbol=48,
+            marker=dict(
+                color='Black',
+                size=10)))
         fig = go.Figure(
             data=data,
             layout=go.Layout(
-                title='Difference between electricity network states',
-                titlefont_size=16,
                 showlegend=True,
                 legend=dict(
                     yanchor="bottom",
@@ -63,64 +74,63 @@ class NetworkState:
                 xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
                 yaxis=dict(showgrid=False, zeroline=False, showticklabels=False)))
 
-        for arrow in arrows:
+        for arrow in self._arrows:
             fig.add_annotation(
-                x=arrow.head_x,  # arrows' head
-                y=arrow.head_y,  # arrows' head
-                ax=arrow.tail_x,  # arrows' tail
-                ay=arrow.tail_y,  # arrows' tail
+                x=arrow.head_x,
+                y=arrow.head_y,
+                ax=arrow.tail_x,
+                ay=arrow.tail_y,
                 xref='x',
                 yref='y',
                 axref='x',
                 ayref='y',
                 arrowsize=0.3 + arrow.size,
                 arrowwidth=1,
-                text="",
+                hovertext=arrow.get_annotation(),
+                text="o",
                 showarrow=True,
-                arrowhead=1
+                arrowhead=1,
             )
 
         return fig
 
     def _get_simple_nodes_scatter(self) -> go.Scatter:
-        return self._get_nodes_scatter('simple nodes', self._simple_nodes, dict(
-                    thickness=15,
-                    title='Difference between simple nodes demands [MV]',
-                    xanchor='left',
-                    titleside='right'
-                ))
+        return self._get_nodes_scatter('simple node', self._simple_nodes, dict(
+            thickness=20,
+            title='Difference between simple nodes demands [MV]',
+            xanchor='left',
+            titleside='right',
+            x=1,
+        ))
 
     def _get_gens_scatter(self) -> go.Scatter:
-        return self._get_nodes_scatter('generators', self._gens, dict(
-                    thickness=15,
-                    title='Generator balance [PLN]',
-                    xanchor='right',
-                    titleside='right',
-                    x=0
-                ))
+        return self._get_nodes_scatter('generator', self._gens, dict(
+            thickness=20,
+            ticks='',
+            title='Generator balance [PLN]',
+            titleside='right',
+            xanchor='right',
+            x=0
+        ))
 
-    def _get_branches_scatters_and_arrows(self) -> (List[go.Scatter], List[Arrow]):
+    def _get_branches_scatters(self) -> List[go.Scatter]:
         branches_scatters: List[go.Scatter] = list()
-        arrows: List[Arrow] = list()
 
-        for branch in self._branches:
+        for i, branch in enumerate(self._branches):
             x0, y0 = self._nodes_positions[branch.from_node]
             x1, y1 = self._nodes_positions[branch.to_node]
             x = [x0, x1, None]
             y = [y0, y1, None]
             width = branch.width
             branches_scatters.append(go.Scatter(
-                showlegend=False,
+                showlegend=(i == 0),
+                legendgroup='branches',
+                name='flow',
                 x=x, y=y,
                 line=dict(width=width, color='#888'),
                 mode='lines'))
-            arrow_size = branch.arrow_size
 
-            if arrow_size > 0.01:
-                arrows.append(
-                    get_arrow_from_branch(branch.from_node, branch.to_node, arrow_size, self._nodes_positions))
-
-        return branches_scatters, arrows
+        return branches_scatters
 
     def _get_nodes_scatter(self, name: str, nodes: List[Node], colorbar: dict) -> go.Scatter:
         xs: List[float] = list()
@@ -132,7 +142,7 @@ class NetworkState:
             ys.append(y)
 
         texts = [node.desc for node in nodes]
-        marker_symbols = [self._node_type_to_symbol[node.type] for node in nodes]
+        marker_symbols = [NODE_TYPE_TO_SYMBOL[node.type] for node in nodes]
         colors = [node.color for node in nodes]
         sizes = [size_scale(node.size) for node in nodes]
         max_abs_color = max([abs(color) for color in colors])
@@ -142,6 +152,7 @@ class NetworkState:
             text=texts,
             mode='markers',
             name=name,
+            showlegend=True,
             marker_symbol=marker_symbols,
             hoverinfo='text',
             marker=dict(
@@ -186,15 +197,21 @@ class NetworkData:
             node_type = node.get_type()
 
             if node_type == 1:  # Simple nodes have type = 1
+                node_from_demand = nodes_from[node_id].get_demand()
+                node_to_demand = node.get_demand()
+
                 if node_id in nodes_from:
-                    color = node.get_demand() - nodes_from[node_id].get_demand()
+                    color = node_to_demand - node_from_demand
                 else:
-                    color = node.get_demand()
+                    color = node_to_demand
 
                 size = (abs(nodes_from[node_id].get_demand()) + abs(nodes_to[node_id].get_demand())) / 2.0
                 text = 'Simple node #%d, type %d <br>' % (node_id, node.get_type()) + \
+                       ANNOTATION_UNDERLINE + \
+                       'demand on hour #%d = %.2f [MV] <br>' % (hour_from, node_from_demand) + \
+                       'demand on hour #%d = %.2f [MV] <br>' % (hour_to, node_to_demand) + \
                        'demand diff = %.2f [MV] <br>' % color + \
-                       'avg abs demand %.2f [MV] <br>' % size
+                       'avg abs demand = %.2f [MV] <br>' % size
                 simple_nodes.append(Node(node_id, size, color, node_type, text))
 
         return simple_nodes
@@ -209,11 +226,17 @@ class NetworkData:
             node_type = nodes[node_id].get_type()
 
             if node_type != 1:  # Generators have type != 1, it should always be true
-                size = gen.get_generation() - node.get_demand()
-                color = gen.get_cost() if size >= 0 else -gen.get_cost()
+                generation = gen.get_generation()
+                demand = node.get_demand()
+                size = generation - demand
+                cost = gen.get_cost()
+                color = cost if size >= 0 else -cost
                 text = 'Generator node #%d, type %d <br>' % (node_id, node.get_type()) + \
+                       ANNOTATION_UNDERLINE + \
+                       'generation = %.2f [MV] <br>' % generation + \
+                       'demand = %.2f [MV] <br>' % demand + \
                        'generation - demand = %.2f [MV] <br>' % size + \
-                       'balance = %.2f [PLN] <br>' % color
+                       'balance = %.2f [PLN] <br>' % cost
                 gens_list.append(Node(node_id, abs(size), color, node_type, text))
 
         return gens_list
@@ -225,6 +248,8 @@ class NetworkData:
 
         for (node_from, node_to), branch in branches_to.items():
             if (node_from, node_to) in branches_from:
+                # Flow difference is represented as arrow size, not a color of the line
+                # because plotly do not have built-in color scale for lines
                 color = branch.get_flow() - branches_from[(node_from, node_to)].get_flow()
                 width = (abs(branch.get_flow()) + abs(branches_from[(node_from, node_to)].get_flow())) / 2
             elif (node_to, node_from) in branches_from:

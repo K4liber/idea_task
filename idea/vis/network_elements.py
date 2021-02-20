@@ -16,9 +16,17 @@ class Branch:
 
 
 class Arrow:
-    def __init__(self, head_x: float, head_y: float, tail_x: float = 0, tail_y: float = 0, size: float = 0):
+    def __init__(self, head_x: float, head_y: float, tail_x: float = 0,
+                 tail_y: float = 0, size: float = 0, annotation: str = ''):
         self.head_x = head_x
         self.head_y = head_y
         self.tail_x = tail_x
         self.tail_y = tail_y
         self.size = size
+        self._annotation = annotation
+
+    def set_annotation(self, annotation: str):
+        self._annotation = annotation
+
+    def get_annotation(self) -> str:
+        return self._annotation
