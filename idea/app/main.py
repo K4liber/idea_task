@@ -1,19 +1,18 @@
-import os
 from os.path import join
 
 import dash
 import dash_core_components as dcc
 import dash_html_components as html
 
-from ..data.in_memory import DatabaseInMemory
+from ..data.hdf5.in_memory import InMemory
 from ..definitions import ROOT_DIR
-from ..vis.network import NetworkData
+from ..visualization.network import NetworkData
 
-hd5_files_dir = join(ROOT_DIR, 'data/hd5/files/')
-db = DatabaseInMemory(hd5_files_dir)
+hdf5_filepath = join(ROOT_DIR, 'data/hdf5/files/task_data.hdf5')
+db = InMemory(hdf5_filepath)
 network_data = NetworkData(db)
-assets_path = join(ROOT_DIR, 'vis/assets/')
-app = dash.Dash(assets_folder=assets_path)
+assets_path = join(ROOT_DIR, 'visualization/assets/')
+app = dash.Dash(assets_folder=assets_path, title='Energy network')
 app.layout = html.Div([
     dcc.Graph(figure=network_data.get_state(6, 12).get_figure(),
               id='network', style={'width': '90vw', 'height': '95vh', 'margin': '0 auto'}),

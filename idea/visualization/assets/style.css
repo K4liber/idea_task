@@ -1,0 +1,15 @@
+body {
+    margin: 0;
+}
+
+.legend .layers, .legend .traces {
+    opacity: 1 !important;
+}
+
+.legendtoggle {
+   display: none;
+}
+
+legendtext {
+   cursor: default;
+}

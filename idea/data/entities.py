@@ -1,7 +1,21 @@
-from typing import Tuple
+import abc
+from typing import Tuple, Any
 
 
-class Node:
+class EntityInterface(metaclass=abc.ABCMeta):
+    @classmethod
+    def __subclasshook__(cls, subclass):
+        return (hasattr(subclass, 'get_key') and
+                callable(subclass.get_id) or
+                NotImplemented)
+
+    @abc.abstractmethod
+    def get_id(self) -> Any:
+        """Get id of the Entity."""
+        pass
+
+
+class Node(EntityInterface):
     def __init__(self, node_id: int, node_type: int, demand: float):
         self._id = node_id
         self._type = node_type
@@ -22,13 +36,13 @@ class Node:
             self._demand == other.get_demand()
 
 
-class Generator:
+class Generator(EntityInterface):
     def __init__(self, node_id: int, generation: float, cost: float):
         self._node_id = node_id
         self._generation = generation  # [MV]
         self._cost = cost  # [PLN]
 
-    def get_node_id(self) -> int:
+    def get_id(self) -> int:
         return self._node_id
 
     def get_generation(self) -> float:
@@ -38,7 +52,7 @@ class Generator:
         return self._cost
 
 
-class Branch:
+class Branch(EntityInterface):
     def __init__(self, node_from: int, node_to: int, flow: float):
         if flow >= 0.0:
             self._node_from = node_from
@@ -55,7 +69,7 @@ class Branch:
     def get_node_to(self) -> int:
         return self._node_to
 
-    def get_key(self) -> Tuple[int, int]:
+    def get_id(self) -> Tuple[int, int]:
         return self._node_from, self._node_to
 
     def get_flow(self) -> float:

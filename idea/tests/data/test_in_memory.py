@@ -1,15 +1,15 @@
 from os.path import join
 from unittest import TestCase
 
-from ...data.in_memory import DatabaseInMemory
+from idea.data.hdf5.in_memory import InMemory
 from ...data.entities import Node
 from ...definitions import ROOT_DIR
 
 
 class TestDatabaseInMemory(TestCase):
     def setUp(self) -> None:
-        hd5_files_dir = join(ROOT_DIR, 'data/hd5/files/')  # TODO prepare folder with some testing, mocked data
-        self.db = DatabaseInMemory(hd5_files_dir)
+        hdf5_filepath = join(ROOT_DIR, 'data/hdf5/files/task_data.hdf5')  # TODO prepare a file with some test data
+        self.db = InMemory(hdf5_filepath)
 
     def test_get_nodes(self):
         nodes_first_hour = self.db.get_hour_to_nodes({1})

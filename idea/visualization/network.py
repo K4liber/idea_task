@@ -53,6 +53,7 @@ class NetworkState:
             visible='legendonly',
             text='flow diff representation',
             name='flow diff',
+            opacity=0,
             showlegend=True,
             marker_symbol=48,
             marker=dict(
@@ -119,8 +120,8 @@ class NetworkState:
         for i, branch in enumerate(self._branches):
             x0, y0 = self._nodes_positions[branch.from_node]
             x1, y1 = self._nodes_positions[branch.to_node]
-            x = [x0, x1, None]
-            y = [y0, y1, None]
+            x = [x0, x1]
+            y = [y0, y1]
             width = branch.width
             branches_scatters.append(go.Scatter(
                 showlegend=(i == 0),
