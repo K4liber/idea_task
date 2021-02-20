@@ -5,7 +5,7 @@ import h5py
 
 from idea.data.hdf5.utils import TABLE_TO_EXTRACTOR
 from idea.data.interface import DatabaseInterface
-from idea.data.entities import Node, Generator, Branch, EntityInterface
+from idea.data.entities import Node, Generator, Branch
 from idea.utils import logger
 
 
