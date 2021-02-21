@@ -1,5 +1,7 @@
 from typing import Dict, Tuple, List
 
+import plotly.graph_objects as go
+
 from .network_elements import Node, Branch
 from .network_state import NetworkState
 from .style import ANNOTATION_UNDERLINE
@@ -8,18 +10,37 @@ from ..data.interface import DatabaseInterface
 
 class NetworkData:
     def __init__(self, db: DatabaseInterface):
+        self._db = db
         self._hour_to_nodes = db.get_hour_to_nodes()
         self._hour_to_branches = db.get_hour_to_branches()
         self._hour_to_gens = db.get_hour_to_gens()
-        self._network_states: Dict[Tuple[int, int], NetworkState] = dict()
+        self._network_states: Dict[Tuple[int, int, int], NetworkState] = dict()
+        self._hour_to_clusters: Dict[int, Dict[Tuple[int, int], int]] = dict()
+        # Below ones are the default network state settings
+        self._hour_from = 6
+        self._hour_to = 12
+        self._n_clusters = 1
 
-    def get_state(self, hour_from: int, hour_to: int) -> NetworkState:
-        state_key = (hour_from, hour_to)
+    def set_state(self, hour_from: int = None, hour_to: int = None, n_clusters: int = None):
+        if hour_from is not None:
+            self._hour_from = hour_from
+
+        if hour_to is not None:
+            self._hour_to = hour_to
+
+        if n_clusters is not None:
+            self._n_clusters = n_clusters
+
+    def get_figure(self) -> go.Figure:
+        return self._get_state(self._hour_from, self._hour_to, self._n_clusters).get_figure()
+
+    def _get_state(self, hour_from: int, hour_to: int, n_clusters: int) -> NetworkState:
+        state_key = (hour_from, hour_to, n_clusters)
 
         if state_key not in self._network_states:
             simple_nodes = self._get_simple_nodes(hour_from, hour_to)
             gens = self._get_gens()
-            branches = self._get_branches(hour_from, hour_to)
+            branches = self._get_branches(hour_from, hour_to, n_clusters)
             self._network_states[state_key] = NetworkState(simple_nodes, gens, branches)
 
         return self._network_states[state_key]
@@ -77,28 +98,34 @@ class NetworkData:
 
         return gens_list
 
-    def _get_branches(self, hour_from: int, hour_to: int) -> List[Branch]:
+    def _get_branches(self, hour_from: int, hour_to: int, n_clusters: int) -> List[Branch]:
         branches_from = self._hour_to_branches[hour_from]
         branches_to = self._hour_to_branches[hour_to]
+        branch_clusters = self._db.get_branch_to_cluster(n_clusters, {hour_from, hour_to})
         branches_list: List[Branch] = list()
 
         for (node_from, node_to), branch in branches_to.items():
+            if (node_from, node_to) in branch_clusters:
+                cluster = branch_clusters[(node_from, node_to)]
+            else:
+                cluster = branch_clusters[(node_to, node_from)]
+
             if (node_from, node_to) in branches_from:
                 # Flow difference is represented as arrow size, not a color of the line
                 # because plotly do not have built-in color scale for lines
-                color = branch.get_flow() - branches_from[(node_from, node_to)].get_flow()
+                arrow_size = branch.get_flow() - branches_from[(node_from, node_to)].get_flow()
                 width = (abs(branch.get_flow()) + abs(branches_from[(node_from, node_to)].get_flow())) / 2
             elif (node_to, node_from) in branches_from:
-                color = branch.get_flow() + branches_from[(node_to, node_from)].get_flow()
+                arrow_size = branch.get_flow() + branches_from[(node_to, node_from)].get_flow()
                 width = (abs(branch.get_flow()) + abs(branches_from[(node_to, node_from)].get_flow())) / 2
             else:
-                color = branch.get_flow()
+                arrow_size = branch.get_flow()
                 width = abs(branch.get_flow())
 
-            if color >= 0:
-                branch = Branch(node_from, node_to, width, arrow_size=color)
+            if arrow_size >= 0:
+                branch = Branch(node_from, node_to, width, arrow_size, cluster)
             else:
-                branch = Branch(node_to, node_from, width, arrow_size=abs(color))
+                branch = Branch(node_to, node_from, width, abs(arrow_size), cluster)
 
             branches_list.append(branch)
 

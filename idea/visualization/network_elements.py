@@ -8,11 +8,12 @@ class Node:
 
 
 class Branch:
-    def __init__(self, from_node: int, to_node: int, width: float, arrow_size: float):
+    def __init__(self, from_node: int, to_node: int, width: float, arrow_size: float, cluster: int):
         self.from_node = from_node
         self.to_node = to_node
         self.width = width
         self.arrow_size = arrow_size
+        self.cluster = cluster
 
 
 class Arrow:

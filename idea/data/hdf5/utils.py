@@ -1,7 +1,13 @@
 from typing import List, Any, Union
 
-from ...data.entities import Node, Generator, Branch
-from ...utils import logger
+import pandas as pd
+import numpy as np
+from h5py import File
+
+from idea.data.entities import Node, Generator, Branch
+from idea.utils import logger
+
+CLUSTER_COL_NAME = 'cluster'
 
 
 def extract_node(node_values: List[Any]) -> Union[Node, None]:
@@ -48,3 +54,22 @@ TABLE_TO_EXTRACTOR = {
     'branches': extract_branch,
     'gens': extract_gen,
 }
+
+
+def get_table_df(hdf5_file: File, table_name: str, columns: List[str]) -> pd.DataFrame:
+    columns_with_hour = columns[:] + ['hour']
+    df = pd.DataFrame(columns=columns_with_hour, index=None)
+
+    for hour in [x for x in hdf5_file.values()][0]:
+        try:
+            hour_int = int(hour.removeprefix('hour_'))
+        except ValueError:
+            logger.error('wrong hour format=%s != hour_{int}' % hour)
+            continue
+
+        hour_df = pd.DataFrame(columns=['node_from', 'node_to', 'flow'],
+                               data=np.array(hdf5_file['results/' + hour + '/' + table_name]))
+        hour_df['hour'] = [hour_int for _ in range(len(hour_df))]
+        df = df.append(hour_df, ignore_index=True)
+
+    return df

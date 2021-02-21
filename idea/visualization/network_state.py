@@ -1,11 +1,10 @@
 from typing import List
 
 import networkx as nx
-
 import plotly.graph_objects as go
 
 from .network_elements import Node, Branch, Arrow
-from .style import ANNOTATION_UNDERLINE, NODE_TYPE_TO_SYMBOL
+from .style import ANNOTATION_UNDERLINE, NODE_TYPE_TO_SYMBOL, CLUSTER_TO_COLOR
 from .utils import get_arrow_from_branch, size_scale
 
 
@@ -63,8 +62,8 @@ class NetworkState:
             layout=go.Layout(
                 showlegend=True,
                 legend=dict(
-                    yanchor="bottom",
-                    y=0.01,
+                    yanchor="top",
+                    y=0.99,
                     xanchor="left",
                     x=0.01
                 ),
@@ -115,6 +114,8 @@ class NetworkState:
 
     def _get_branches_scatters(self) -> List[go.Scatter]:
         branches_scatters: List[go.Scatter] = list()
+        already_on_legend = set()
+        n_clusters = len(set([branch.cluster for branch in self._branches]))
 
         for i, branch in enumerate(self._branches):
             x0, y0 = self._nodes_positions[branch.from_node]
@@ -122,13 +123,20 @@ class NetworkState:
             x = [x0, x1]
             y = [y0, y1]
             width = branch.width
+
+            if n_clusters == 1:
+                group = 'flow'
+            else:
+                group = 'flow group %d' % (branch.cluster + 1)  # Start group numeration from 1
+
             branches_scatters.append(go.Scatter(
-                showlegend=(i == 0),
-                legendgroup='branches',
-                name='flow',
+                showlegend=branch.cluster not in already_on_legend,
+                legendgroup=group,
+                name=group,
                 x=x, y=y,
-                line=dict(width=width, color='#888'),
+                line=dict(width=width, color=CLUSTER_TO_COLOR[branch.cluster]),
                 mode='lines'))
+            already_on_legend.add(branch.cluster)
 
         return branches_scatters
 

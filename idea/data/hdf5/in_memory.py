@@ -2,11 +2,12 @@ from collections import defaultdict
 from typing import Dict, Set, Tuple
 
 import h5py
+from sklearn.cluster import KMeans
 
-from idea.data.hdf5.utils import TABLE_TO_EXTRACTOR
-from idea.data.interface import DatabaseInterface
-from idea.data.entities import Node, Generator, Branch
-from idea.utils import logger
+from .utils import TABLE_TO_EXTRACTOR, get_table_df, CLUSTER_COL_NAME
+from ..interface import DatabaseInterface
+from ..entities import Node, Generator, Branch
+from ...utils import logger
 
 
 class InMemory(DatabaseInterface):
@@ -17,7 +18,8 @@ class InMemory(DatabaseInterface):
             self._data[table_name] = defaultdict(dict)
 
         with h5py.File(hdf5_filepath, "r") as file:
-            self._load_data_from_hdf5_file(file)
+            self._load_entities_from_hdf5_file(file)
+            self._branches_df = get_table_df(file, 'branches', ['node_from', 'node_to', 'flow'])
 
     def get_hour_to_nodes(self, hours: Set[int] = None) -> Dict[int, Dict[int, Node]]:
         return self._get_hours_data(hours, 'nodes')
@@ -28,7 +30,24 @@ class InMemory(DatabaseInterface):
     def get_hour_to_branches(self, hours: Set[int] = None) -> Dict[int, Dict[Tuple[int, int], Branch]]:
         return self._get_hours_data(hours, 'branches')
 
-    def _load_data_from_hdf5_file(self, file):
+    # This is the simplest clustering implementation.
+    # Clustering use only the flow column and the KMeans algorithm.
+    def get_branch_to_cluster(self, n_clusters: int, hours: Set[int] = None) -> Dict[Tuple[int, int], int]:
+        branches_in_hours = self._branches_df.loc[self._branches_df['hour'].isin(hours)]
+        branches_avg = branches_in_hours.abs().groupby(['node_from', 'node_to']).mean()
+        # Clustering settings
+        columns = ['flow']  # Which columns use for clustering
+        algorithm = KMeans(n_clusters=n_clusters)
+        clusters = algorithm.fit_predict(branches_avg[columns])
+        branches_avg[CLUSTER_COL_NAME] = clusters
+        branch_to_cluster = dict()
+
+        for _, row in branches_avg.iterrows():
+            branch_to_cluster[(abs(int(row.name[0])), abs(int(row.name[1])))] = int(row['cluster'])
+
+        return branch_to_cluster
+
+    def _load_entities_from_hdf5_file(self, file):
         hours_key = list(file.keys())[0]
 
         for hour, hour_row in file[hours_key].items():
