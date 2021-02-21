@@ -6,7 +6,7 @@ import dash_html_components as html
 
 from ..data.hdf5.in_memory import InMemory
 from ..definitions import ROOT_DIR
-from ..visualization.network import NetworkData
+from ..visualization.network_data import NetworkData
 
 hdf5_filepath = join(ROOT_DIR, 'data/hdf5/files/task_data.hdf5')
 db = InMemory(hdf5_filepath)
