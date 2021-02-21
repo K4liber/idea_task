@@ -3,7 +3,7 @@ To run the interactive visualization type the command:
 `./build_and_run.sh`  
 or if you want to build the docker image based on alpine:  
 `./build_and_run.sh DockerfileAlpine`  
-It takes a lot more time to build from the alpine image.  
+It takes a lot more time to build from the alpine image, but the image is a little lighter.  
 Type the address below into your browser and have fun:
 `http://127.0.0.1:8050/`  
 ## Instructions for use 
@@ -13,7 +13,7 @@ To do this just select the same hour on input fields at top corners.*
 2. Show the difference between network states for selected hours.
 The differences are shown as simple nodes colors (demand difference) and arrow sizes (flow difference).
 3. Clustering the branches by the flow.**    
-*You can use the bottom slider to change the hours.
+*You can use the bottom slider to change the hours.  
 **Use `Clusters` setting from the bottom panel to change the number of clusters.
 ## Elements of the visualization
 1. Simple nodes - nodes that are not generators. Marked as circles.
